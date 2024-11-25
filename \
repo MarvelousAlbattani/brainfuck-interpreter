@@ -1,0 +1,93 @@
+use std::io::stdin;
+
+fn main() {
+    let mut ip: u32 = 0;
+    let mut tape: [u32; 256] = [0; 256];
+    let mut end_loop: bool = false;
+
+    let mut code = String::new();
+
+    println!("Insert brainfuck code -> ");
+    stdin()
+        .read_line(&mut code)
+        .expect("Did not enter a correct string");
+
+    let exploded_code: Vec<char> = code.chars().collect();
+    let mut current_token_index: usize = 0;
+    let exploded_code_len = exploded_code.len();
+
+    while current_token_index < exploded_code_len {
+        let token = exploded_code[current_token_index];
+
+        // goto end of the loop
+        if end_loop {
+            current_token_index += 1;
+
+            if token != ']' {
+                continue;
+            }
+        }
+
+        let mut tmp: bool = false;
+
+        if token == ']' {
+            tmp = true;
+        }
+
+        match token {
+            '>' => move_right(&mut ip),
+            '<' => move_left(&mut ip),
+            '+' => add(&mut tape[ip as usize]),
+            '-' => sub(&mut tape[ip as usize]),
+            '.' => print_tape_cell(&mut tape[ip as usize]),
+            '[' => check_loop(&mut tape[ip as usize], &mut end_loop),
+            ']' => redo_loop(&exploded_code, &mut current_token_index),
+            _ => (),
+        }
+
+        if !tmp {
+            current_token_index += 1;
+        }
+    }
+}
+
+fn print_tape_cell(cell_value: &mut u32) {
+    println!("{}", char::from_u32(*cell_value).unwrap());
+}
+
+fn check_loop(cell_value: &mut u32, end_loop: &mut bool) {
+    *end_loop = *cell_value == 0;
+}
+
+fn redo_loop(tokens: &[char], current_token_index: &mut usize) {
+    // se tornando indietro trovo parentesi chiuse ] le conto in modo da saltare lo stesso numero
+    // di parentesi aperte
+    let mut sub_loops_counter: u32 = 0;
+
+    while *current_token_index >= 0 {
+        *current_token_index -= 1;
+        if sub_loops_counter == 0 && tokens[*current_token_index] == '[' {
+            break;
+        } else if sub_loops_counter > 0 && tokens[*current_token_index] == '[' {
+            sub_loops_counter -= 1;
+        } else if tokens[*current_token_index] == ']' {
+            sub_loops_counter += 1;
+        }
+    }
+}
+
+fn move_right(ip: &mut u32) {
+    *ip += 1;
+}
+
+fn move_left(ip: &mut u32) {
+    *ip -= 1;
+}
+
+fn add(cell_value: &mut u32) {
+    *cell_value += 1;
+}
+
+fn sub(cell_value: &mut u32) {
+    *cell_value -= 1;
+}
