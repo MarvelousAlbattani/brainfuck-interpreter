@@ -2,7 +2,7 @@ use std::io::stdin;
 
 fn main() {
     let mut ip: u32 = 0;
-    let mut tape: [u32; 256] = [0; 256];
+    let mut tape: [u32; 256000] = [0; 256000];
     let mut end_loop: bool = false;
 
     let mut code = String::new();
@@ -64,7 +64,7 @@ fn user_input(cell_value: &mut u32) {
     let mut input_value = String::new();
     stdin().read_line(&mut input_value).expect("Failed to read line");
 
-    *cell_value = input_value.trim().parse().expect("Please enter a valid number");
+    *cell_value = input_value.trim().parse().unwrap_or(0);
 }
 
 fn print_tape_cell(cell_value: &mut u32) {
@@ -105,5 +105,10 @@ fn add(cell_value: &mut u32) {
 }
 
 fn sub(cell_value: &mut u32) {
-    *cell_value -= 1;
+    if (*cell_value - 1 < 0) {
+        *cell_value = 0;
+    } else {
+        *cell_value -= 1;
+    }
 }
+
