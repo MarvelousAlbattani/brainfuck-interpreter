@@ -10,9 +10,8 @@ enum Token {
     Print,
     StartLoop,
     EndLoop,
-    None
+    None,
 }
-
 
 impl Clone for Token {
     fn clone(&self) -> Self {
@@ -25,12 +24,12 @@ impl Clone for Token {
             Token::Input => Token::Input,
             Token::StartLoop => Token::StartLoop,
             Token::EndLoop => Token::EndLoop,
-            Token::None => Token::None
+            Token::None => Token::None,
         }
     }
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone)]
 enum Instruction {
     MoveRight,
     MoveLeft,
@@ -39,7 +38,7 @@ enum Instruction {
     Input,
     Print,
     Loop(Vec<Instruction>),
-    None
+    None,
 }
 
 fn main() {
@@ -52,30 +51,32 @@ fn main() {
     stdin()
         .read_line(&mut code)
         .expect("Did not enter a correct string");
-    
+
     let mut tokens: Vec<Token> = Vec::new();
 
     lexer(code, &mut tokens);
 
     let instructions: Vec<Instruction> = parser(tokens);
 
-    run(instructions);
+    run(instructions, &mut tape, &mut ip);
 }
 
-fn run(instructions: Vec<Instruction>) {
+fn run(instructions: Vec<Instruction>, tape: &mut [u32; 256000], ip: &mut u32) {
     for instruction in instructions {
         match instruction {
-            Instruction::MoveRight => println!("MoveRight"),
-            Instruction::MoveLeft => println!("MoveLeft"),
-            Instruction::Add => println!("Add"),
-            Instruction::Sub => println!("Sub"),
-            Instruction::Print => println!("Print"),
-            Instruction::Input => println!("Input"),
-            Instruction::Loop(instructions) => {
-                println!("Loop")
-            },
-            _ => println!("Nothin")
-        } 
+            Instruction::MoveRight => move_right(ip),
+            Instruction::MoveLeft => move_left(ip),
+            Instruction::Add => add(&mut tape[*ip as usize]),
+            Instruction::Sub => sub(&mut tape[*ip as usize]),
+            Instruction::Print => print_tape_cell(&mut tape[*ip as usize]),
+            Instruction::Input => user_input(&mut tape[*ip as usize]),
+            Instruction::Loop(inner_instructions) => {
+                while tape[*ip as usize] > 0 {
+                    run(inner_instructions.clone(), tape, ip);
+                }
+            }
+            _ => (),
+        }
     }
 }
 
@@ -88,46 +89,80 @@ fn parser(tokens: Vec<Token>) -> Vec<Instruction> {
 
     for (index, token) in tokens.iter().enumerate() {
         let instruction: Instruction = match token {
-            Token::MoveRight => if sub_loops_counter == 0 { Instruction::MoveRight } else { Instruction::None },
-            Token::MoveLeft => if sub_loops_counter == 0 { Instruction::MoveLeft } else { Instruction::None },
-            Token::Add => if sub_loops_counter == 0 { Instruction::Add } else { Instruction::None },
-            Token::Sub => if sub_loops_counter == 0 { Instruction::Sub } else { Instruction::None },
-            Token::Print => if sub_loops_counter == 0 { Instruction::Print } else { Instruction::None },
-            Token::Input => if sub_loops_counter == 0 { Instruction::Input } else { Instruction::None },
+            Token::MoveRight => {
+                if sub_loops_counter == 0 {
+                    Instruction::MoveRight
+                } else {
+                    Instruction::None
+                }
+            }
+            Token::MoveLeft => {
+                if sub_loops_counter == 0 {
+                    Instruction::MoveLeft
+                } else {
+                    Instruction::None
+                }
+            }
+            Token::Add => {
+                if sub_loops_counter == 0 {
+                    Instruction::Add
+                } else {
+                    Instruction::None
+                }
+            }
+            Token::Sub => {
+                if sub_loops_counter == 0 {
+                    Instruction::Sub
+                } else {
+                    Instruction::None
+                }
+            }
+            Token::Print => {
+                if sub_loops_counter == 0 {
+                    Instruction::Print
+                } else {
+                    Instruction::None
+                }
+            }
+            Token::Input => {
+                if sub_loops_counter == 0 {
+                    Instruction::Input
+                } else {
+                    Instruction::None
+                }
+            }
             Token::StartLoop => {
                 if sub_loops_counter == 0 {
                     starting_loop_index = index as i32;
                 }
-                    
+
                 sub_loops_counter += 1;
 
                 Instruction::None
-            },
+            }
             Token::EndLoop => {
                 let mut result: Instruction = Instruction::None;
 
                 if sub_loops_counter == 1 {
                     ending_loop_index = index as i32;
 
-                    let loop_tokens: Vec<Token> = tokens[
-                        ((starting_loop_index as usize) + 1)..(ending_loop_index as usize)
-                    ].to_vec();
-                    println!("aa");
-                    println!("{:?}", loop_tokens);
+                    let loop_tokens: Vec<Token> = tokens
+                        [((starting_loop_index as usize) + 1)..(ending_loop_index as usize)]
+                        .to_vec();
 
-                    result = Instruction::Loop(
-                        parser(loop_tokens)
-                    );
+                    result = Instruction::Loop(parser(loop_tokens));
 
                     starting_loop_index = -1;
                     ending_loop_index = -1;
+
+                    sub_loops_counter = 0;
                 } else {
                     sub_loops_counter -= 1;
                 }
 
                 result
-            },
-            Token::None => Instruction::None
+            }
+            Token::None => Instruction::None,
         };
 
         if instruction != Instruction::None {
@@ -140,7 +175,7 @@ fn parser(tokens: Vec<Token>) -> Vec<Instruction> {
 
 fn lexer(code: String, tokens: &mut Vec<Token>) {
     let exploded_code: Vec<char> = code.chars().collect();
-    
+
     for command in exploded_code {
         let token: Token = match command {
             '>' => Token::MoveRight,
@@ -152,42 +187,18 @@ fn lexer(code: String, tokens: &mut Vec<Token>) {
             '[' => Token::StartLoop,
             ']' => Token::EndLoop,
             '\n' => break,
-            _ => Token::None
+            _ => Token::None,
         };
 
         tokens.push(token);
     }
 }
 
-/*
-*
-* Token::MoveRight => move_right(ip),
-            Token::MoveLeft => move_left(ip),
-            Token::Add => add(&mut tape[*ip as usize]),
-            Token::Sub => sub(&mut tape[*ip as usize]),
-            Token::Print => print_tape_cell(&mut tape[*ip as usize]),
-            Token::Input => user_input(&mut tape[*ip as usize]),
-            Token::StartLoop => {
-                if sub_loops_counter == 0 {
-                    starting_loop_index = index as u8; 
-                }
-                    
-                sub_loops_counter += 1;
-            },
-            Token::EndLoop => {
-                if sub_loops_counter == 0 {
-                    ending_loop_index = index as u8;
-                    
-                    ()
-                }
-
-                sub_loops_counter -= 1;
-            },
-            Token::None => ()*/
-
 fn user_input(cell_value: &mut u32) {
     let mut input_value = String::new();
-    stdin().read_line(&mut input_value).expect("Failed to read line");
+    stdin()
+        .read_line(&mut input_value)
+        .expect("Failed to read line");
 
     *cell_value = input_value.trim().parse().unwrap_or(0);
 }
@@ -236,4 +247,3 @@ fn sub(cell_value: &mut u32) {
         *cell_value -= 1;
     }
 }
-
