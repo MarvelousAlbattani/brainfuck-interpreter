@@ -1,5 +1,6 @@
 use std::{io::stdin, usize};
 
+// lexer tokens
 #[derive(Debug)]
 enum Token {
     MoveRight,
@@ -42,25 +43,31 @@ enum Instruction {
 }
 
 fn main() {
+    // instruction pointer for moving on the tape
     let mut ip: u8 = 0;
     let mut tape: [i8; 256000] = [0; 256000];
 
     let mut code: String = String::new();
 
     println!("Insert brainfuck code:");
+    // ask for input
     stdin()
         .read_line(&mut code)
         .expect("Did not enter a correct string");
 
     let mut tokens: Vec<Token> = Vec::new();
 
+    // transform plain brainfuck code to an array of lexems
     lexer(code, &mut tokens);
 
+    // get an array of instructions from lexems
     let instructions: Vec<Instruction> = parser(tokens);
 
+    // executes instructions of brainfuck lexems in rust
     run(instructions, &mut tape, &mut ip);
 }
 
+// function to translate instructions in real operations on tape
 fn run(instructions: Vec<Instruction>, tape: &mut [i8; 256000], ip: &mut u8) {
     for instruction in instructions {
         match instruction {
@@ -80,6 +87,7 @@ fn run(instructions: Vec<Instruction>, tape: &mut [i8; 256000], ip: &mut u8) {
     }
 }
 
+// parse lexems to instructions
 fn parser(tokens: Vec<Token>) -> Vec<Instruction> {
     let mut starting_loop_index: i8 = -1;
     let mut ending_loop_index: i8 = -1;
@@ -90,6 +98,8 @@ fn parser(tokens: Vec<Token>) -> Vec<Instruction> {
     for (index, token) in tokens.iter().enumerate() {
         let instruction: Instruction = match token {
             Token::MoveRight => {
+                // this conditions is needed to avoid creating instructions
+                // when parsing loops
                 if sub_loops_counter == 0 {
                     Instruction::MoveRight
                 } else {
@@ -136,6 +146,8 @@ fn parser(tokens: Vec<Token>) -> Vec<Instruction> {
                     starting_loop_index = index as i8;
                 }
 
+                // this variable is used to avoid creating a stack
+                // and understand when this loop ends
                 sub_loops_counter += 1;
 
                 Instruction::None
@@ -143,20 +155,31 @@ fn parser(tokens: Vec<Token>) -> Vec<Instruction> {
             Token::EndLoop => {
                 let mut result: Instruction = Instruction::None;
 
+                // at the end of the loop so now 
+                // we can get the right index to 
+                // create an array of instructions
+                // and generate a Loop instruction
                 if sub_loops_counter == 1 {
                     ending_loop_index = index as i8;
 
+                    // create a sub-array and transform
+                    // startLoop and endLoop in only one
+                    // loop instruction
                     let loop_tokens: Vec<Token> = tokens
                         [((starting_loop_index as usize) + 1)..(ending_loop_index as usize)]
                         .to_vec();
 
                     result = Instruction::Loop(parser(loop_tokens));
 
+                    // reset variables for next loops
                     starting_loop_index = -1;
                     ending_loop_index = -1;
 
                     sub_loops_counter = 0;
                 } else {
+                    // if other endLoops are encountered
+                    // we can jump them to get the right
+                    // endloop
                     sub_loops_counter -= 1;
                 }
 
@@ -165,6 +188,7 @@ fn parser(tokens: Vec<Token>) -> Vec<Instruction> {
             Token::None => Instruction::None,
         };
 
+        // save instructions only when needed
         if instruction != Instruction::None {
             instructions.push(instruction);
         }
@@ -173,6 +197,7 @@ fn parser(tokens: Vec<Token>) -> Vec<Instruction> {
     instructions
 }
 
+// populates the tokens vector with lexems
 fn lexer(code: String, tokens: &mut Vec<Token>) {
     let exploded_code: Vec<char> = code.chars().collect();
 
@@ -194,6 +219,11 @@ fn lexer(code: String, tokens: &mut Vec<Token>) {
     }
 }
 
+// from now on there will be only functions associated
+// with brainfuck functionalities
+
+// asks for user inputs and write the inserted value 
+// on the tape at the currently pointed cell
 fn user_input(cell_value: &mut i8) {
     let mut input_value = String::new();
     stdin()
@@ -213,18 +243,22 @@ fn print_tape_cell(cell_value: &mut i8) {
     }
 }
 
+// moves the instruction pointer to the right
 fn move_right(ip: &mut u8) {
     *ip += 1;
 }
 
+// moves the instruction pointer to the left
 fn move_left(ip: &mut u8) {
     *ip -= 1;
 }
 
+// adds 1 unit to the current pointed tape cell
 fn add(cell_value: &mut i8) {
     *cell_value += 1;
 }
 
+// removes 1 unit from the current pointed tape cell
 fn sub(cell_value: &mut i8) {
     *cell_value -= 1;
 }
