@@ -42,12 +42,12 @@ enum Instruction {
 }
 
 fn main() {
-    let mut ip: u32 = 0;
-    let mut tape: [u32; 256000] = [0; 256000];
+    let mut ip: u8 = 0;
+    let mut tape: [i8; 256000] = [0; 256000];
 
     let mut code: String = String::new();
 
-    println!("Insert brainfuck code -> ");
+    println!("Insert brainfuck code:");
     stdin()
         .read_line(&mut code)
         .expect("Did not enter a correct string");
@@ -61,7 +61,7 @@ fn main() {
     run(instructions, &mut tape, &mut ip);
 }
 
-fn run(instructions: Vec<Instruction>, tape: &mut [u32; 256000], ip: &mut u32) {
+fn run(instructions: Vec<Instruction>, tape: &mut [i8; 256000], ip: &mut u8) {
     for instruction in instructions {
         match instruction {
             Instruction::MoveRight => move_right(ip),
@@ -81,8 +81,8 @@ fn run(instructions: Vec<Instruction>, tape: &mut [u32; 256000], ip: &mut u32) {
 }
 
 fn parser(tokens: Vec<Token>) -> Vec<Instruction> {
-    let mut starting_loop_index: i32 = -1;
-    let mut ending_loop_index: i32 = -1;
+    let mut starting_loop_index: i8 = -1;
+    let mut ending_loop_index: i8 = -1;
     let mut sub_loops_counter: u8 = 0;
 
     let mut instructions: Vec<Instruction> = Vec::new();
@@ -133,7 +133,7 @@ fn parser(tokens: Vec<Token>) -> Vec<Instruction> {
             }
             Token::StartLoop => {
                 if sub_loops_counter == 0 {
-                    starting_loop_index = index as i32;
+                    starting_loop_index = index as i8;
                 }
 
                 sub_loops_counter += 1;
@@ -144,7 +144,7 @@ fn parser(tokens: Vec<Token>) -> Vec<Instruction> {
                 let mut result: Instruction = Instruction::None;
 
                 if sub_loops_counter == 1 {
-                    ending_loop_index = index as i32;
+                    ending_loop_index = index as i8;
 
                     let loop_tokens: Vec<Token> = tokens
                         [((starting_loop_index as usize) + 1)..(ending_loop_index as usize)]
@@ -194,7 +194,7 @@ fn lexer(code: String, tokens: &mut Vec<Token>) {
     }
 }
 
-fn user_input(cell_value: &mut u32) {
+fn user_input(cell_value: &mut i8) {
     let mut input_value = String::new();
     stdin()
         .read_line(&mut input_value)
@@ -203,47 +203,28 @@ fn user_input(cell_value: &mut u32) {
     *cell_value = input_value.trim().parse().unwrap_or(0);
 }
 
-fn print_tape_cell(cell_value: &mut u32) {
-    print!("{}", char::from_u32(*cell_value).unwrap());
-}
+// print the current pointed tape cell
+fn print_tape_cell(cell_value: &mut i8) {
+    let unsigned = *cell_value as u8;
+    let char = unsigned as char;
 
-fn check_loop(cell_value: &mut u32, end_loop: &mut bool) {
-    *end_loop = *cell_value == 0;
-}
-
-fn redo_loop(tokens: &[char], current_token_index: &mut usize) {
-    // se tornando indietro trovo parentesi chiuse ] le conto in modo da saltare lo stesso numero
-    // di parentesi aperte
-    let mut sub_loops_counter: u32 = 0;
-
-    while *current_token_index != 0 {
-        *current_token_index -= 1;
-        if sub_loops_counter == 0 && tokens[*current_token_index] == '[' {
-            break;
-        } else if sub_loops_counter > 0 && tokens[*current_token_index] == '[' {
-            sub_loops_counter -= 1;
-        } else if tokens[*current_token_index] == ']' {
-            sub_loops_counter += 1;
-        }
+    if (*cell_value >= 0) {
+        print!("{}", char);
     }
 }
 
-fn move_right(ip: &mut u32) {
+fn move_right(ip: &mut u8) {
     *ip += 1;
 }
 
-fn move_left(ip: &mut u32) {
+fn move_left(ip: &mut u8) {
     *ip -= 1;
 }
 
-fn add(cell_value: &mut u32) {
+fn add(cell_value: &mut i8) {
     *cell_value += 1;
 }
 
-fn sub(cell_value: &mut u32) {
-    if *cell_value - 1 < 0 {
-        *cell_value = 0;
-    } else {
-        *cell_value -= 1;
-    }
+fn sub(cell_value: &mut i8) {
+    *cell_value -= 1;
 }
